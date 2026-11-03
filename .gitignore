@@ -6,3 +6,5 @@
 .rds
 .Rproj.user/
 dataderived/
+/.quarto/
+**/*.quarto_ipynb

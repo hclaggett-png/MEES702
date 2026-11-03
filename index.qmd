@@ -1,0 +1,64 @@
+---
+title: "Session 2: Index Report"
+author: "Hannah Claggett"
+date: today
+format:
+    html:
+        toc: true
+        toc-depth: 2
+        theme: cosmo
+        code-fold: show
+execute:
+    warning: false
+    message: false
+editor_options:
+    chunk_output_type: console
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(plotly)
+library(leaflet)
+```
+
+@fig-scatter displays the daily ozone concentration (ppb) vs. temperature (F) in NY over five months in the interactive plot.
+```{r}
+#| label: fig-scatter
+#| fig-cap: "Interactive daily ozone concentration vs. temperature in New York."
+
+p <- ggplot(airquality, aes(x = Temp, y = Ozone, color = factor(Month))) +
+ geom_point(size = 2, alpha = 0.8) +
+ labs(
+   x = "Temperature (°F)",
+   y = "Ozone (ppb)",
+   color = "Month"
+   ) +
+  theme_minimal()
+
+ggplotly(p)
+```
+@tbl-airquality shows a statistical summary of data presented in @fig-scatter
+```{r}
+#| label: tbl-airquality
+#| tbl-cap: "Statistical Summary"
+psych:: describe(airquality) |>
+    knitr::kable(digits = 2)
+```
+
+Our sample size is '{r} nrow(airquality)'.
+@fig-cbl shows location of UMCES CBL lab in an interactice map
+```{r}
+#| label: fig-cbl
+#| fig-cap: "Location of UMCES Chesapeake Biological Laboratory."
+
+leaflet() %>%
+   addTiles() %>%  # Default OpenStreetMap base tiles
+   addMarkers(
+       lng = -76.4533, 
+       lat = 38.3191, 
+       popup = "UMCES - Chesapeake Biological Laboratory"
+ ) |>
+    setView(-76.4533, 38.3191, zoom =7)
+```
+
