@@ -67,3 +67,83 @@ nc_close(nc)
      cbl_df |>
 ggplot(aes(y = Temperature, x = Day, color = Layer)) +
         geom_line()
+
+# Exercise 4: Annual Averaging and Public Domain Map Overlay
+    # Loading libraries again
+     library(ncdf4)
+     library(sf)
+     library(rnaturalearth)
+     library(ggplot2)
+     library(ggspatial)
+     library(tibble)
+     library(dplyr)
+
+     # Set the path to the NetCDF file and open it
+     nc_path <- "cbefs_2024_v20251101.nc"
+     nc <- nc_open(nc_path)
+
+     # Extract 2D geographic coordinate matrices
+     lon_matrix <- ncvar_get(nc, "longitude")
+     lat_matrix <- ncvar_get(nc, "latitude")
+
+#Extract the surface water layer (Layer 2) across all 365 days. Using start & count avoids pulling the bottom layer into memory.
+temp_surface <- ncvar_get(nc, "temperature", start = c(1, 1, 2, 1), count = c(-1, -1, 1, 365))
+      # put your code here
+         # Close the NetCDF file connection when finished
+         nc_close(nc)
+         temp_surface_mean <- apply(temp_surface, c(1, 2), mean, na.rm = TRUE)
+
+temp_surface_mean_sf <- tibble(
+             Longitude   = as.vector(lon_matrix),
+             Latitude    = as.vector(lat_matrix),
+             Temperature   = as.vector(temp_surface_mean)
+         ) |>
+             filter(!is.na(Temperature)) |>
+             st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+
+land_bg <- ne_states(country = "United States of America", returnclass = "sf")
+
+ggplot() +
+    # Land layer
+    geom_sf(data = land_bg, fill = "grey90", color = "grey65", linewidth = 0.3) +
+
+    # CBEFS temperatures
+    geom_sf(data = temp_surface_mean_sf, aes(color = Temperature), size = 0.5) +
+    scale_color_viridis_c(option = "plasma", name = "Mean\ntemperature\n(°C)") +
+
+    # Set map spatial limits to Chesapeake Bay region
+    coord_sf(
+        xlim = c(-77.5, -75.3),
+        ylim = c(36.8, 39.7),
+        crs = 4326,
+        expand = FALSE
+    ) +
+
+    # Map scale bar
+    annotation_scale(
+        location = "bl",
+        width_hint = 0.3,
+        unit_category = "metric"
+    ) +
+
+    # North pointer
+    annotation_north_arrow(
+        location = "tl",
+        which_north = "true",
+        pad_x = unit(0.2, "in"),
+        pad_y = unit(0.2, "in"),
+        style = north_arrow_fancy_orienteering()
+    ) +
+
+    labs(
+        title = "Chesapeake Bay 2024 mean surface water temperature",
+        subtitle = "CBEFS model output with Natural Earth public domain land boundaries",
+        x = "Longitude",
+        y = "Latitude"
+    ) +
+    theme_bw() +
+    theme(
+        panel.grid.major = element_line(color = "grey85", linetype = "dotted"),
+        panel.background = element_rect(fill = "aliceblue"), # water backdrop for unmodeled ocean
+        legend.position = "right"
+    )
